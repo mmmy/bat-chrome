@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>BatChat Monitor</title>
+  <style>
+    body {
+      width: 300px;
+      padding: 15px;
+      font-family: Arial, sans-serif;
+    }
+    h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .active {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .inactive {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .url-info {
+      word-break: break-all;
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h3>BatChat WebSocket Monitor</h3>
+
+  <div id="statusDiv" class="status inactive">
+    Checking status...
+  </div>
+
+  <div id="urlInfo" class="url-info"></div>
+
+  <button id="optionsBtn">Open Settings</button>
+  <button id="testBtn">Test Connection</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "BatChat WebSocket Monitor",
+  "version": "1.0.0",
+  "description": "Monitor WebSocket messages from BatChat and forward them via HTTP POST",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "https://web.batchat.com/*",
+    "wss://wsd.baaaat.com/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://web.batchat.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["page-inject.js"],
+      "matches": ["https://web.batchat.com/*"]
+    }
+  ],
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "BatChat WebSocket Monitor"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

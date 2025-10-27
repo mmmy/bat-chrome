@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>BatChat WebSocket Monitor - Options</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="url"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background-color: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+      margin-top: 20px;
+    }
+    code {
+      background-color: #f8f9fa;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-family: Consolas, Monaco, monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>BatChat WebSocket Monitor Settings</h1>
+
+  <div class="form-group">
+    <label for="targetUrl">Target URL for HTTP POST:</label>
+    <input type="url" id="targetUrl" placeholder="https://example.com/api/webhook">
+  </div>
+
+  <button id="save">Save Settings</button>
+
+  <div id="status" class="status"></div>
+
+  <div class="info">
+    <h3>Information</h3>
+    <p>This extension monitors WebSocket messages from <code>wss://wsd.baaaat.com/ws</code> on <code>https://web.batchat.com/</code>.</p>
+    <p>Messages are decoded from base64 and forwarded as JSON to your specified URL.</p>
+    <h4>Message Format:</h4>
+    <pre>{
+  "timestamp": "2025-01-23T14:32:50.123Z",
+  "source": "bat-chat-websocket",
+  "data": "decoded message content",
+  "originalBase64": "base64 encoded message"
+}</pre>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

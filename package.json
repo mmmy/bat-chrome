@@ -1,0 +1,18 @@
+{
+  "name": "batchat-websocket-monitor-test",
+  "version": "1.0.0",
+  "description": "Test suite for BatChat WebSocket Monitor Chrome Extension",
+  "main": "test-extension.js",
+  "scripts": {
+    "test": "node test-extension.js",
+    "test-server": "node test-server.js"
+  },
+  "dependencies": {
+    "puppeteer-core": "^21.0.0",
+    "express": "^4.18.2",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
