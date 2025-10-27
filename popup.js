@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const urlInfo = document.getElementById('urlInfo');
   const optionsBtn = document.getElementById('optionsBtn');
   const testBtn = document.getElementById('testBtn');
+  const logToggle = document.getElementById('logToggle');
 
   // Get current target URL
   chrome.runtime.sendMessage({ type: 'get_target_url' }, function(response) {
@@ -16,6 +17,32 @@ document.addEventListener('DOMContentLoaded', function() {
       statusDiv.textContent = 'Please configure target URL';
       statusDiv.className = 'status inactive';
     }
+  });
+
+  // Get logging preference
+  chrome.runtime.sendMessage({ type: 'get_logging_pref' }, function(response) {
+    if (chrome.runtime.lastError) {
+      console.warn('Failed to get logging preference', chrome.runtime.lastError);
+      return;
+    }
+    if (response && typeof response.onlyFiltered === 'boolean') {
+      logToggle.checked = response.onlyFiltered;
+    }
+  });
+
+  // Toggle logging preference
+  logToggle.addEventListener('change', function() {
+    const onlyFiltered = logToggle.checked;
+    chrome.runtime.sendMessage({ type: 'set_logging_pref', onlyFiltered }, function(res) {
+      if (chrome.runtime.lastError) {
+        console.warn('Failed to set logging preference', chrome.runtime.lastError);
+        logToggle.checked = !onlyFiltered;
+        return;
+      }
+      if (!(res && res.success)) {
+        logToggle.checked = !onlyFiltered;
+      }
+    });
   });
 
   // Open options page

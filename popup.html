@@ -48,6 +48,22 @@
     button:hover {
       background-color: #0056b3;
     }
+    .toggle-row {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #333;
+    }
+    .toggle-row label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .toggle-row input[type="checkbox"] {
+      width: 40px;
+      height: 20px;
+      accent-color: #007bff;
+    }
   </style>
 </head>
 <body>
@@ -58,6 +74,13 @@
   </div>
 
   <div id="urlInfo" class="url-info"></div>
+
+  <div class="toggle-row">
+    <label for="logToggle">
+      <input type="checkbox" id="logToggle">
+      仅显示过滤后消息日志
+    </label>
+  </div>
 
   <button id="optionsBtn">Open Settings</button>
   <button id="testBtn">Test Connection</button>

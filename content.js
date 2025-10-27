@@ -5,6 +5,7 @@
   const DEBUG_PREFIX = '[BatChat Monitor]';
   let monitoringActive = false;
   let messageCount = 0;
+  let filteredMessageCount = 0;
   let counterElement = null;
 
   function debugLog(message, extra) {
@@ -32,6 +33,7 @@
       counterElement.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       counterElement.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.3)';
       counterElement.style.pointerEvents = 'none';
+      counterElement.style.whiteSpace = 'pre-line';
     }
 
     const parent = document.body || document.documentElement;
@@ -46,8 +48,11 @@
 
   function updateCounter() {
     const element = ensureCounterElement();
-    element.textContent = `Messages intercepted: ${messageCount}`;
-    debugLog('Counter updated', { messageCount });
+    element.textContent = `总消息：${messageCount}\n过滤消息：${filteredMessageCount}`;
+    debugLog('Counter updated', {
+      messageCount,
+      filteredMessageCount
+    });
   }
 
   function handleInjectedMessage(event) {
@@ -128,6 +133,22 @@
         messageCount
       });
       return true;
+    } else if (request && request.type === 'trading_filter_result') {
+      if (request.isTrading) {
+        filteredMessageCount += 1;
+        updateCounter();
+        debugLog('Trading message confirmed by background filter', {
+          filteredMessageCount,
+          score: request.score,
+          reasons: request.reasons
+        });
+      } else {
+        debugLog('Message filtered out by background', {
+          score: request.score,
+          reasons: request.reasons
+        });
+      }
+      return false;
     }
     return false;
   });
