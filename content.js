@@ -3,6 +3,40 @@
 
   const BRIDGE_EVENT = '__bat_chat_websocket_event__';
   let monitoringActive = false;
+  let messageCount = 0;
+  let counterElement = null;
+
+  function ensureCounterElement() {
+    if (!counterElement) {
+      counterElement = document.createElement('div');
+      counterElement.id = 'bat-chat-monitor-counter';
+      counterElement.style.position = 'fixed';
+      counterElement.style.right = '16px';
+      counterElement.style.bottom = '16px';
+      counterElement.style.zIndex = '2147483647';
+      counterElement.style.background = 'rgba(0, 0, 0, 0.75)';
+      counterElement.style.color = '#ffffff';
+      counterElement.style.padding = '6px 10px';
+      counterElement.style.borderRadius = '6px';
+      counterElement.style.fontSize = '12px';
+      counterElement.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      counterElement.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.3)';
+      counterElement.style.pointerEvents = 'none';
+    }
+
+    const parent = document.body || document.documentElement;
+
+    if (parent && !counterElement.isConnected) {
+      parent.appendChild(counterElement);
+    }
+
+    return counterElement;
+  }
+
+  function updateCounter() {
+    const element = ensureCounterElement();
+    element.textContent = `Messages intercepted: ${messageCount}`;
+  }
 
   function injectScript() {
     const script = document.createElement('script');
@@ -23,6 +57,8 @@
     }
 
     monitoringActive = true;
+    messageCount += 1;
+    updateCounter();
 
     console.log('?? BatChat WebSocket Monitor: Bridging intercepted message', {
       timestamp: detail.timestamp,
@@ -47,6 +83,7 @@
   }
 
   injectScript();
+  updateCounter();
   window.addEventListener(BRIDGE_EVENT, handleInjectedMessage, false);
   console.log('?? BatChat WebSocket Monitor: Content script initialized');
 
