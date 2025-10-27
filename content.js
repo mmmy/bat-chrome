@@ -2,12 +2,22 @@
   'use strict';
 
   const BRIDGE_EVENT = '__bat_chat_websocket_event__';
+  const DEBUG_PREFIX = '[BatChat Monitor]';
   let monitoringActive = false;
   let messageCount = 0;
   let counterElement = null;
 
+  function debugLog(message, extra) {
+    if (typeof extra !== 'undefined') {
+      console.log(`${DEBUG_PREFIX} ${message}`, extra);
+    } else {
+      console.log(`${DEBUG_PREFIX} ${message}`);
+    }
+  }
+
   function ensureCounterElement() {
     if (!counterElement) {
+      debugLog('Creating counter overlay');
       counterElement = document.createElement('div');
       counterElement.id = 'bat-chat-monitor-counter';
       counterElement.style.position = 'fixed';
@@ -28,6 +38,7 @@
 
     if (parent && !counterElement.isConnected) {
       parent.appendChild(counterElement);
+      debugLog('Mounted counter overlay', { parentTag: parent.tagName });
     }
 
     return counterElement;
@@ -36,23 +47,39 @@
   function updateCounter() {
     const element = ensureCounterElement();
     element.textContent = `Messages intercepted: ${messageCount}`;
-  }
-
-  function injectScript() {
-    const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('page-inject.js');
-    script.async = false;
-    script.onload = () => script.remove();
-    document.documentElement.appendChild(script);
+    debugLog('Counter updated', { messageCount });
   }
 
   function handleInjectedMessage(event) {
     if (!event || event.type !== BRIDGE_EVENT || !event.detail) {
+      if (event && event.type === BRIDGE_EVENT) {
+        debugLog('Bridge event received without detail payload');
+      }
       return;
     }
 
     const detail = event.detail;
-    if (detail.bridgeId !== 'bat-chat-monitor' || detail.type !== 'websocket_message') {
+    if (detail.bridgeId !== 'bat-chat-monitor') {
+      debugLog('Bridge event ignored (unexpected bridgeId)', {
+        bridgeId: detail.bridgeId,
+        type: detail.type
+      });
+      return;
+    }
+
+    if (detail.type === 'bridge_ready') {
+      debugLog('Bridge reported ready state', {
+        url: detail.url,
+        timestamp: detail.timestamp
+      });
+      monitoringActive = false;
+      return;
+    }
+
+    if (detail.type !== 'websocket_message') {
+      debugLog('Bridge event ignored (unsupported type)', {
+        type: detail.type
+      });
       return;
     }
 
@@ -60,7 +87,7 @@
     messageCount += 1;
     updateCounter();
 
-    console.log('?? BatChat WebSocket Monitor: Bridging intercepted message', {
+    debugLog('Forwarding intercepted message', {
       timestamp: detail.timestamp,
       url: detail.url,
       hasDecodedMessage: Boolean(detail.decodedMessage),
@@ -82,16 +109,23 @@
     });
   }
 
-  injectScript();
+  debugLog('Setting up bridge event listener (waiting for MAIN world bridge)');
   updateCounter();
   window.addEventListener(BRIDGE_EVENT, handleInjectedMessage, false);
-  console.log('?? BatChat WebSocket Monitor: Content script initialized');
+  debugLog('Content script initialized', {
+    location: window.location.href,
+    documentReadyState: document.readyState
+  });
 
   chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if (request && request.type === 'test') {
       sendResponse({
         success: true,
         monitoringActive
+      });
+      debugLog('Responded to runtime test ping', {
+        monitoringActive,
+        messageCount
       });
       return true;
     }

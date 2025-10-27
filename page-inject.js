@@ -1,6 +1,12 @@
 (function() {
   'use strict';
 
+  if (window.__batChatMonitorInjected) {
+    console.log('?? BatChat WebSocket Monitor: Injection already applied; skipping duplicate run');
+    return;
+  }
+  window.__batChatMonitorInjected = true;
+
   const TARGET_HOST = 'wsd.baaaat.com/ws';
   const BRIDGE_EVENT = '__bat_chat_websocket_event__';
   const BRIDGE_ORIGIN = 'bat-chat-monitor';
@@ -267,6 +273,12 @@
 
   window.WebSocket.prototype = OriginalWebSocket.prototype;
   Object.setPrototypeOf(window.WebSocket, OriginalWebSocket);
+
+  dispatchMessage({
+    type: 'bridge_ready',
+    url: window.location.href,
+    timestamp: new Date().toISOString()
+  });
 
   console.log('?? BatChat WebSocket Monitor: Injection script loaded');
 })();

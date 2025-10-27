@@ -21,6 +21,12 @@
       "matches": ["https://web.batchat.com/*"],
       "js": ["content.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://web.batchat.com/*"],
+      "js": ["page-inject.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
   "web_accessible_resources": [
