@@ -82,20 +82,19 @@
       return;
     }
 
-    if (detail.type === "user_logout") {
-      debugLog("User logout detected", {
-        trigger: detail.trigger,
+    if (detail.type === "login_status_check") {
+      debugLog("Login status check triggered", {
+        isLoginPage: detail.isLoginPage,
         url: detail.url,
         timestamp: detail.timestamp,
       });
-      // 转发登出事件到background script
+      // 转发登录状态到background script
       chrome.runtime.sendMessage({
-        type: "user_logout",
+        type: "login_status_check",
         timestamp: detail.timestamp,
         url: detail.url,
-        trigger: detail.trigger,
+        isLoginPage: detail.isLoginPage,
         details: detail.details,
-        previousUrl: detail.previousUrl,
       });
       return;
     }

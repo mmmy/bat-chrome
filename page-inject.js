@@ -14,8 +14,6 @@
   const BRIDGE_ORIGIN = "bat-chat-monitor";
   const OriginalWebSocket = window.WebSocket;
   let activeConnections = new Set();
-  let lastKnownUrl = window.location.href;
-  let isLoggedIn = true;
 
   function normalizeUrl(url) {
     if (!url) {
@@ -124,8 +122,8 @@
     }
   }
 
-  function sanitizeTextPreview(text, max = 200) {
-    if (!text) {
+  function sanitizeTextPreview(text, max = 1000) {
+    if (!text || typeof text !== "string") {
       return "";
     }
     let preview = text;
@@ -136,7 +134,8 @@
       .replace(/\r/g, "\\r")
       .replace(/\n/g, "\\n")
       .replace(/\t/g, "\\t")
-      .replace(/[\0-\x08\x0B\x0C\x0E-\x1F]/g, "?");
+      .replace(/[\0-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "?") // 扩展控制字符范围
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, "?"); // Unicode控制字符
   }
 
   function bytesToHexPreview(bytes, max = 32) {
@@ -172,29 +171,16 @@
 
       ws.addEventListener("open", function () {
         console.log("?? BatChat WebSocket Monitor: WebSocket connected");
+        activeConnections.add(ws);
       });
 
       ws.addEventListener("close", function () {
         console.log("?? BatChat WebSocket Monitor: WebSocket disconnected");
-      });
-
-      ws.addEventListener("close", function (event) {
-        console.log(
-          "?? BatChat WebSocket Monitor: WebSocket closed:",
-          urlString,
-          event.code,
-          event.reason
-        );
         activeConnections.delete(ws);
-        checkLoginStatus("websocket_close", {
-          code: event.code,
-          reason: event.reason,
-        });
       });
 
       ws.addEventListener("error", function (error) {
         console.error("?? BatChat WebSocket Monitor: WebSocket error:", error);
-        checkLoginStatus("websocket_error", { error: error.message });
       });
 
       ws.addEventListener("message", function (event) {
@@ -360,248 +346,72 @@
   window.WebSocket.prototype = OriginalWebSocket.prototype;
   Object.setPrototypeOf(window.WebSocket, OriginalWebSocket);
 
-  function checkLoginStatus(trigger, details = {}) {
-    const currentUrl = window.location.href;
-    const previousLoginState = isLoggedIn;
+  // 登录页面检测函数
+  function isLoginPage() {
+    const currentUrl = window.location.href.toLowerCase();
+    const currentTitle = document.title.toLowerCase();
 
-    // 检查URL变化 (通常登出会跳转到登录页)
-    if (currentUrl !== lastKnownUrl) {
-      if (
-        currentUrl.includes("/login") ||
-        currentUrl.includes("/auth") ||
-        !currentUrl.includes("web.batchat.com")
-      ) {
-        isLoggedIn = false;
-      } else if (
-        lastKnownUrl.includes("/login") &&
-        !currentUrl.includes("/login")
-      ) {
-        isLoggedIn = true;
-      }
-      lastKnownUrl = currentUrl;
-    }
+    // 检查URL是否包含登录相关关键字
+    const urlIndicators = [
+      "/login",
+      "/auth",
+      "/signin",
+      "/sign-in",
+      "login",
+      "auth",
+      "signin",
+      "sign-in",
+    ];
 
-    // 检查WebSocket连接状态
-    if (trigger === "websocket_close") {
-      // 正常关闭代码(1000-1001)可能是用户主动操作，异常关闭可能是登出
-      if (details.code === 1000 || details.code === 1001) {
-        // 可能是正常登出
-        setTimeout(() => {
-          if (activeConnections.size === 0 && isLoggedIn) {
-            isLoggedIn = false;
-            dispatchLogoutEvent("websocket_normal_close", details);
-          }
-        }, 1000);
-      }
-    }
+    // 检查页面标题是否包含登录相关关键字
+    const titleIndicators = ["登录", "login", "sign in", "signin"];
 
-    // 如果登录状态发生变化，发送事件
-    if (previousLoginState !== isLoggedIn && !isLoggedIn) {
-      dispatchLogoutEvent(trigger, details);
-    }
-  }
-
-  function dispatchLogoutEvent(trigger, details) {
-    dispatchMessage({
-      type: "user_logout",
-      url: window.location.href,
-      timestamp: new Date().toISOString(),
-      trigger,
-      details,
-      previousUrl: lastKnownUrl,
-    });
-    console.log("?? BatChat WebSocket Monitor: User logout detected", {
-      trigger,
-      details,
-    });
-  }
-
-  // 监听页面URL变化
-  let urlObserver = null;
-  if (window.MutationObserver) {
-    urlObserver = new MutationObserver(() => {
-      checkLoginStatus("url_change");
-    });
-    urlObserver.observe(document.body, { childList: true, subtree: true });
-  }
-
-  function checkLoginStatus(trigger, details = {}) {
-    const currentUrl = window.location.href;
-    const previousLoginState = isLoggedIn;
-
-    // 检查URL变化 (通常登出会跳转到登录页)
-    if (currentUrl !== lastKnownUrl) {
-      if (
-        currentUrl.includes("/login") ||
-        currentUrl.includes("/auth") ||
-        !currentUrl.includes("web.batchat.com")
-      ) {
-        isLoggedIn = false;
-      } else if (
-        lastKnownUrl.includes("/login") &&
-        !currentUrl.includes("/login")
-      ) {
-        isLoggedIn = true;
-      }
-      lastKnownUrl = currentUrl;
-    }
-
-    // 检查WebSocket连接状态
-    if (trigger === "websocket_close") {
-      // 正常关闭代码(1000-1001)可能是用户主动操作，异常关闭可能是登出
-      if (details.code === 1000 || details.code === 1001) {
-        // 可能是正常登出
-        setTimeout(() => {
-          if (activeConnections.size === 0 && isLoggedIn) {
-            isLoggedIn = false;
-            dispatchLogoutEvent("websocket_normal_close", details);
-          }
-        }, 1000);
-      }
-    }
-
-    // 如果登录状态发生变化，发送事件
-    if (previousLoginState !== isLoggedIn && !isLoggedIn) {
-      dispatchLogoutEvent(trigger, details);
-    }
-  }
-
-  function dispatchLogoutEvent(trigger, details) {
-    dispatchMessage({
-      type: "user_logout",
-      url: window.location.href,
-      timestamp: new Date().toISOString(),
-      trigger,
-      details,
-      previousUrl: lastKnownUrl,
-    });
-    console.log("?? BatChat WebSocket Monitor: User logout detected", {
-      trigger,
-      details,
-    });
-  }
-
-  // 方案二：监听DOM变化和Storage变化
-  function initLogoutDetectionV2() {
-    // 监听localStorage/sessionStorage变化
-    const originalSetItem = localStorage.setItem;
-    localStorage.setItem = function (key, value) {
-      const result = originalSetItem.call(this, key, value);
-
-      // 检查是否是登录相关的token被清除
-      if (
-        (key.includes("token") ||
-          key.includes("auth") ||
-          key.includes("session")) &&
-        (!value || value === "null" || value === "")
-      ) {
-        dispatchLogoutEvent("storage_cleared", {
-          key,
-          storage: "localStorage",
-        });
-      }
-
-      return result;
-    };
-
-    const originalSessionSetItem = sessionStorage.setItem;
-    sessionStorage.setItem = function (key, value) {
-      const result = originalSessionSetItem.call(this, key, value);
-
-      if (
-        (key.includes("token") ||
-          key.includes("auth") ||
-          key.includes("session")) &&
-        (!value || value === "null" || value === "")
-      ) {
-        dispatchLogoutEvent("storage_cleared", {
-          key,
-          storage: "sessionStorage",
-        });
-      }
-
-      return result;
-    };
-
-    // 监听常见的登出按钮点击
-    document.addEventListener(
-      "click",
-      function (event) {
-        const element = event.target;
-        const text = element.textContent?.toLowerCase() || "";
-        const className = element.className?.toLowerCase() || "";
-
-        // 检查是否点击了登出相关按钮
-        if (
-          text.includes("logout") ||
-          text.includes("登出") ||
-          text.includes("退出") ||
-          text.includes("sign out") ||
-          className.includes("logout") ||
-          className.includes("sign-out")
-        ) {
-          dispatchLogoutEvent("logout_button_clicked", {
-            elementText: element.textContent,
-            elementClass: element.className,
-          });
-        }
-      },
-      true
+    const urlHasLogin = urlIndicators.some((indicator) =>
+      currentUrl.includes(indicator)
+    );
+    const titleHasLogin = titleIndicators.some((indicator) =>
+      currentTitle.includes(indicator)
     );
 
-    // 监听页面标题变化（登出时通常会改变标题）
-    let lastTitle = document.title;
-    const titleObserver = new MutationObserver(() => {
-      if (document.title !== lastTitle) {
-        if (
-          document.title.includes("登录") ||
-          document.title.includes("Login") ||
-          document.title.includes("Sign In")
-        ) {
-          dispatchLogoutEvent("title_changed_to_login", {
-            oldTitle: lastTitle,
-            newTitle: document.title,
-          });
-        }
-        lastTitle = document.title;
-      }
-    });
+    // 检查页面DOM是否包含登录表单元素
+    const hasLoginForm =
+      document.querySelector('input[type="password"]') !== null ||
+      document.querySelector('form[action*="login"]') !== null ||
+      document.querySelector('form[action*="auth"]') !== null ||
+      document.querySelector('[class*="login"]') !== null ||
+      document.querySelector('[id*="login"]') !== null;
 
-    titleObserver.observe(document.querySelector("title"), { childList: true });
-
-    // 监听用户信息元素消失
-    const userInfoObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        mutation.removedNodes.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node;
-            // 检查是否移除了用户头像、用户名等元素
-            if (
-              element.className?.includes("avatar") ||
-              element.className?.includes("user") ||
-              element.className?.includes("profile") ||
-              element.id?.includes("user")
-            ) {
-              dispatchLogoutEvent("user_element_removed", {
-                elementTag: element.tagName,
-                elementClass: element.className,
-                elementId: element.id,
-              });
-            }
-          }
-        });
-      });
-    });
-
-    userInfoObserver.observe(document.body, { childList: true, subtree: true });
+    return urlHasLogin || titleHasLogin || hasLoginForm;
   }
 
-  initLogoutDetectionV2();
+  // 检查登录状态并发送消息
+  function checkAndNotifyLoginStatus() {
+    if (isLoginPage()) {
+      dispatchMessage({
+        type: "login_status_check",
+        url: window.location.href,
+        timestamp: new Date().toISOString(),
+        isLoginPage: true,
+        details: {
+          url: window.location.href,
+          title: document.title,
+          hasPasswordInput:
+            document.querySelector('input[type="password"]') !== null,
+        },
+      });
+      console.log(
+        "?? BatChat WebSocket Monitor: Login page detected, sent notification"
+      );
+    }
+  }
 
-  // 定期检查登录状态
-  setInterval(() => {
-    checkLoginStatus("periodic_check");
-  }, 5000);
+  // 1分钟后开始，每5分钟检查一次是否在登录页面
+  setTimeout(() => {
+    // 每5分钟检查一次
+    setInterval(() => {
+      checkAndNotifyLoginStatus();
+    }, 300000); // 300秒 = 5分钟
+  }, 60000); // 1分钟后再开始检测
 
   dispatchMessage({
     type: "bridge_ready",

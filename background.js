@@ -243,8 +243,8 @@ chrome.storage.sync.get(
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.type === "websocket_message") {
     forwardMessage(request, sender);
-  } else if (request.type === "user_logout") {
-    handleUserLogout(request, sender);
+  } else if (request.type === "login_status_check") {
+    handleLoginStatusCheck(request, sender);
   } else if (request.type === "get_target_url") {
     sendResponse({ url: targetUrl });
   } else if (request.type === "set_target_url") {
@@ -263,27 +263,29 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   return true;
 });
 
-// Handle user logout event
-async function handleUserLogout(logoutEvent, sender) {
-  console.log("?? BatChat Background - User logout detected:", logoutEvent);
+// Handle login status check
+async function handleLoginStatusCheck(statusEvent, sender) {
+  console.log("?? BatChat Background - Login status check:", statusEvent);
 
   if (!targetUrl) {
     console.log(
-      "?? Background: No target URL configured, logout event not forwarded"
+      "?? Background: No target URL configured, login status not forwarded"
     );
     return;
   }
 
-  // 发送退出登录通知到配置的URL + '/api/notify'
+  // 发送登录状态通知到配置的URL + '/api/notify'
   const notifyPayload = {
-    msg: "已退出登录",
+    msg: "未登录",
   };
 
   try {
     const response = await fetch(targetUrl + "/api/notify", {
       method: "POST",
+      mode: "cors", // 明确指定CORS模式
       headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify(notifyPayload),
     });
@@ -291,7 +293,7 @@ async function handleUserLogout(logoutEvent, sender) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(
-        "?? Background - Failed to send logout notification:",
+        "?? Background - Failed to send login status notification:",
         response.status,
         response.statusText
       );
@@ -299,14 +301,19 @@ async function handleUserLogout(logoutEvent, sender) {
         console.error("?? Background - Response:", errorText);
       }
     } else {
-      console.log("?? Background - ✓ Logout notification sent successfully");
+      console.log(
+        "?? Background - ✓ Login status notification sent successfully"
+      );
       const responseText = await response.text();
       if (responseText) {
         console.log("?? Background - Server Response:", responseText);
       }
     }
   } catch (error) {
-    console.error("?? Background - Error sending logout notification:", error);
+    console.error(
+      "?? Background - Error sending login status notification:",
+      error
+    );
   }
 }
 
@@ -423,7 +430,7 @@ async function forwardMessage(message, sender) {
     transport: "websocket",
     url: sourceUrl,
     encoding: decodedMessage ? "utf-8" : "base64",
-    data: decodedMessage || base64Data,
+    data: parsedData || decodedMessage || base64Data,
     originalBase64: base64Data,
     isText: decodedMessage ? true : isTextHint === true,
     hexPreview: message.hexPreview || null,
@@ -449,9 +456,10 @@ async function forwardMessage(message, sender) {
   const payloadPreview = {
     ...payload,
     data:
-      payload.encoding === "utf-8"
+      parsedData ||
+      (payload.encoding === "utf-8"
         ? payload.data
-        : `[base64:${base64Data.length}]`,
+        : `[base64:${base64Data.length}]`),
   };
 
   logger.log(
@@ -460,12 +468,25 @@ async function forwardMessage(message, sender) {
     targetUrl + "/api/message"
   );
   logger.log("log", "?? Background - Payload Preview:", payloadPreview);
+  logger.log("log", "?? Background - Data type sent:", typeof payload.data);
+  if (parsedData) {
+    logger.log("log", "?? Background - ✓ Sending parsed JSON data");
+  } else if (decodedMessage) {
+    logger.log("log", "?? Background - ✓ Sending decoded UTF-8 text");
+  } else {
+    logger.log(
+      "warn",
+      "?? Background - ⚠ Sending original base64 data (no decode available)"
+    );
+  }
 
   try {
     const response = await fetch(targetUrl + "/api/message", {
       method: "POST",
+      mode: "cors", // 明确指定CORS模式
       headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify(payload),
     });
