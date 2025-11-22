@@ -3,16 +3,8 @@
   "name": "BatChat WebSocket Monitor",
   "version": "1.0.0",
   "description": "Monitor WebSocket messages from BatChat and forward them via HTTP POST",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "declarativeNetRequest"
-  ],
-  "host_permissions": [
-    "https://web.batchat.com/*",
-    "wss://wsd.baaaat.com/*",
-    "<all_urls>"
-  ],
+  "permissions": ["storage", "activeTab", "declarativeNetRequest"],
+  "host_permissions": ["https://web.batchat.com/*", "wss://wsd.baaaat.com/*"],
   "background": {
     "service_worker": "background.js"
   },

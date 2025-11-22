@@ -8,6 +8,7 @@ A Chrome extension that monitors WebSocket messages from BatChat (https://web.ba
 - Decodes base64 encoded messages
 - Forwards messages via HTTP POST to configured URL
 - Works only on `https://web.batchat.com/*` domain
+- **User logout detection** with dual monitoring approaches
 
 ## Installation
 
@@ -25,6 +26,8 @@ A Chrome extension that monitors WebSocket messages from BatChat (https://web.ba
 
 ## Message Format
 
+### WebSocket Messages
+
 Messages are sent as JSON with the following format:
 
 ```json
@@ -35,6 +38,39 @@ Messages are sent as JSON with the following format:
   "originalBase64": "base64 encoded message"
 }
 ```
+
+### User Logout Events
+
+When a user logout is detected, a simple notification is sent:
+
+**Request URL**: `POST {configured_url}/api/notify`
+
+**Request Body**:
+
+```json
+{
+  "msg": "已退出登录"
+}
+```
+
+This provides a lightweight notification specifically for logout events, separate from the regular WebSocket message forwarding.
+
+## Logout Detection Methods
+
+### Method 1: WebSocket Connection Monitoring
+
+- Monitors WebSocket connection status changes
+- Detects normal/abnormal connection closures
+- Tracks URL changes (login page redirects)
+- Periodic connection state verification
+
+### Method 2: DOM and Storage Monitoring
+
+- Monitors localStorage/sessionStorage for auth token removal
+- Detects logout button clicks via event listeners
+- Watches for page title changes to login-related text
+- Observes user interface element removal (avatars, profiles)
+- Tracks DOM mutations indicating login state changes
 
 ## Files Structure
 
